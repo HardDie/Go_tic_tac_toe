@@ -193,3 +193,12 @@ func (game Game) CheckWin() (bool, PlayerType) {
 
 	return false, Player_None
 }
+
+func (game Game) Field2String() (res string) {
+	for line := 0; line < FieldHeight; line++ {
+		for row := 0; row < FieldWidth; row++ {
+			res += string(game.cells[row+line*FieldWidth])
+		}
+	}
+	return
+}
