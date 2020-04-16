@@ -179,5 +179,17 @@ func (game Game) CheckWin() (bool, PlayerType) {
 		}
 	}
 
+	// Draw
+	flag = true
+	for _, val := range game.cells {
+		if val == cell_Empty {
+			flag = false
+			break
+		}
+	}
+	if flag == true {
+		return true, Player_None
+	}
+
 	return false, Player_None
 }
