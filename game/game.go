@@ -19,17 +19,17 @@ const FieldHeight = 3
 type cellType rune
 
 const (
-	cell_Empty cellType = ' '
-	cell_X              = 'X'
-	cell_O              = 'O'
+	cellEmpty cellType = ' '
+	cellX     cellType = 'X'
+	cellO     cellType = 'O'
 )
 
 type PlayerType int
 
 const (
-	Player_None PlayerType = iota
-	Player_X
-	Player_O
+	PlayerNone PlayerType = iota
+	PlayerX
+	PlayerO
 )
 
 type Game struct {
@@ -48,7 +48,7 @@ func NewGame() *Game {
 
 func (game *Game) Reset() {
 	for i := 0; i < FieldWidth*FieldHeight; i++ {
-		game.cells[i] = cell_Empty
+		game.cells[i] = cellEmpty
 	}
 }
 
@@ -76,15 +76,15 @@ func (game *Game) MakeStep(player PlayerType, pos int) error {
 		return errors.New("Invalid position value")
 	}
 
-	if game.cells[pos] != cell_Empty {
+	if game.cells[pos] != cellEmpty {
 		return errors.New("Field is already busy")
 	}
 
 	switch player {
-	case Player_X:
-		game.cells[pos] = cell_X
-	case Player_O:
-		game.cells[pos] = cell_O
+	case PlayerX:
+		game.cells[pos] = cellX
+	case PlayerO:
+		game.cells[pos] = cellO
 	default:
 		return errors.New("Wrong player type")
 	}
@@ -94,19 +94,19 @@ func (game *Game) MakeStep(player PlayerType, pos int) error {
 
 func getPlayerType(cell cellType) PlayerType {
 	switch cell {
-	case cell_X:
-		return Player_X
-	case cell_O:
-		return Player_O
+	case cellX:
+		return PlayerX
+	case cellO:
+		return PlayerO
 	}
-	return Player_None
+	return PlayerNone
 }
 
 func (game Game) CheckWin() (bool, PlayerType) {
 	var flag bool
 	// Lines
 	for line := 0; line < FieldHeight; line++ {
-		if game.cells[0+line*FieldWidth] == cell_Empty {
+		if game.cells[0+line*FieldWidth] == cellEmpty {
 			continue
 		}
 
@@ -118,7 +118,7 @@ func (game Game) CheckWin() (bool, PlayerType) {
 			}
 		}
 
-		if flag == false {
+		if !flag {
 			continue
 		}
 
@@ -127,7 +127,7 @@ func (game Game) CheckWin() (bool, PlayerType) {
 
 	// Rows
 	for row := 0; row < FieldWidth; row++ {
-		if game.cells[row+0*FieldWidth] == cell_Empty {
+		if game.cells[row+0*FieldWidth] == cellEmpty {
 			continue
 		}
 
@@ -139,7 +139,7 @@ func (game Game) CheckWin() (bool, PlayerType) {
 			}
 		}
 
-		if flag == false {
+		if !flag {
 			continue
 		}
 
@@ -149,7 +149,7 @@ func (game Game) CheckWin() (bool, PlayerType) {
 	// Diagonals
 	if FieldWidth == FieldHeight {
 		// From top left to bottom right
-		if game.cells[0] != cell_Empty {
+		if game.cells[0] != cellEmpty {
 			flag = true
 			for i := 0; i < FieldWidth-1; i++ {
 				if game.cells[i+i*FieldWidth] != game.cells[(i+1)+(i+1)*FieldWidth] {
@@ -159,12 +159,12 @@ func (game Game) CheckWin() (bool, PlayerType) {
 			}
 		}
 
-		if flag == true {
+		if flag {
 			return true, getPlayerType(game.cells[0])
 		}
 
 		// From top right to bottom left
-		if game.cells[FieldWidth-1] != cell_Empty {
+		if game.cells[FieldWidth-1] != cellEmpty {
 			flag = true
 			for i := 0; i < FieldWidth-1; i++ {
 				if game.cells[(FieldWidth-1-i)+i*FieldWidth] != game.cells[(FieldWidth-2-i)+(i+1)*FieldWidth] {
@@ -174,7 +174,7 @@ func (game Game) CheckWin() (bool, PlayerType) {
 			}
 		}
 
-		if flag == true {
+		if flag {
 			return true, getPlayerType(game.cells[FieldWidth-1])
 		}
 	}
@@ -182,16 +182,16 @@ func (game Game) CheckWin() (bool, PlayerType) {
 	// Draw
 	flag = true
 	for _, val := range game.cells {
-		if val == cell_Empty {
+		if val == cellEmpty {
 			flag = false
 			break
 		}
 	}
-	if flag == true {
-		return true, Player_None
+	if flag {
+		return true, PlayerNone
 	}
 
-	return false, Player_None
+	return false, PlayerNone
 }
 
 func (game Game) Field2String() (res string) {
