@@ -1,3 +1,5 @@
+all: linters tests
+
 linters:
 	golangci-lint run --disable-all \
 		--enable gosimple \
@@ -24,3 +26,6 @@ linters:
 		--enable gocyclo \
 		--enable goimports \
 		--enable gofmt
+
+tests:
+	go test tic_tac_toe/game
