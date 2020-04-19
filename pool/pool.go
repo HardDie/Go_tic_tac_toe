@@ -3,7 +3,6 @@ package pool
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -51,11 +50,54 @@ func NewPool() *Pool {
 	return &pool
 }
 
+func stepWithRotation(pos, rotation int) int {
+	var row int
+	var line int
+
+	row = pos % game.FieldWidth
+	line = pos / game.FieldWidth
+
+	switch rotation {
+	case 0:
+		return pos
+	case 90:
+		return (game.FieldHeight - 1 - line) + row*game.FieldWidth
+	case 180:
+		return (game.FieldWidth - 1 - row) + (game.FieldHeight-1-line)*game.FieldWidth
+	case 270:
+		return line + (game.FieldWidth-1-row)*game.FieldWidth
+	default:
+		panic("Noooooo")
+	}
+}
+
 func (p *Pool) GetStep(gm game.Game) (int, error) {
-	field := gm.Field2String()
+	var field string
+	rotation := 0
+	fields := gm.FieldToAllVariants()
+
+	for i, val := range fields {
+		if _, ok := p.Pool[val]; ok {
+			switch i {
+			case 0, 1:
+				rotation = 0
+			case 2, 3:
+				rotation = 90
+			case 4, 5:
+				rotation = 180
+			case 6, 7:
+				rotation = 270
+			default:
+				return 0, errors.New("Wrong rotation")
+			}
+			field = val
+			break
+		}
+	}
 
 	// Init element if not exist
-	if _, ok := p.Pool[field]; !ok {
+	if len(field) == 0 {
+		field = fields[0]
 		p.Pool[field] = &variants{}
 		for i, val := range field {
 			if val == ' ' {
@@ -79,7 +121,7 @@ func (p *Pool) GetStep(gm game.Game) (int, error) {
 
 			p.activeSteps = append(p.activeSteps, step{field, i})
 
-			return i, nil
+			return stepWithRotation(i, rotation), nil
 		}
 		tmpValue += val
 	}
@@ -142,13 +184,4 @@ func (p *Pool) DoLose() {
 	}
 
 	p.GameCounts++
-}
-
-func (p Pool) Print() {
-	fmt.Println("GameCount:", p.GameCounts)
-	fmt.Println("Width:", p.Width)
-	fmt.Println("Height:", p.Height)
-	for key, val := range p.Pool {
-		fmt.Println(key, val)
-	}
 }

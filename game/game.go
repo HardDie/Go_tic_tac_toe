@@ -194,11 +194,90 @@ func (game Game) CheckWin() (bool, PlayerType) {
 	return false, PlayerNone
 }
 
-func (game Game) Field2String() (res string) {
+func (game Game) FieldToAllVariants() (res []string) {
+	var strLine string
+	var revLine string
+
 	for line := 0; line < FieldHeight; line++ {
 		for row := 0; row < FieldWidth; row++ {
-			res += string(game.cells[row+line*FieldWidth])
+			strLine += string(game.cells[row+line*FieldWidth])
+
+			switch game.cells[row+line*FieldWidth] {
+			case cellX:
+				revLine += string(cellO)
+			case cellO:
+				revLine += string(cellX)
+			default:
+				revLine += string(game.cells[row+line*FieldWidth])
+			}
 		}
 	}
-	return
+
+	res = append(res, strLine)
+	res = append(res, revLine)
+	strLine = ""
+	revLine = ""
+
+	// 90
+	for row := FieldWidth - 1; row >= 0; row-- {
+		for line := 0; line < FieldHeight; line++ {
+			strLine += string(game.cells[row+line*FieldWidth])
+
+			switch game.cells[row+line*FieldWidth] {
+			case cellX:
+				revLine += string(cellO)
+			case cellO:
+				revLine += string(cellX)
+			default:
+				revLine += string(game.cells[row+line*FieldWidth])
+			}
+		}
+	}
+
+	res = append(res, strLine)
+	res = append(res, revLine)
+	strLine = ""
+	revLine = ""
+
+	// 180
+	for line := FieldHeight - 1; line >= 0; line-- {
+		for row := FieldWidth - 1; row >= 0; row-- {
+			strLine += string(game.cells[row+line*FieldWidth])
+
+			switch game.cells[row+line*FieldWidth] {
+			case cellX:
+				revLine += string(cellO)
+			case cellO:
+				revLine += string(cellX)
+			default:
+				revLine += string(game.cells[row+line*FieldWidth])
+			}
+		}
+	}
+
+	res = append(res, strLine)
+	res = append(res, revLine)
+	strLine = ""
+	revLine = ""
+
+	// 270
+	for row := 0; row < FieldWidth; row++ {
+		for line := FieldHeight - 1; line >= 0; line-- {
+			strLine += string(game.cells[row+line*FieldWidth])
+
+			switch game.cells[row+line*FieldWidth] {
+			case cellX:
+				revLine += string(cellO)
+			case cellO:
+				revLine += string(cellX)
+			default:
+				revLine += string(game.cells[row+line*FieldWidth])
+			}
+		}
+	}
+
+	res = append(res, strLine)
+	res = append(res, revLine)
+
+	return res
 }
