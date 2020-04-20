@@ -11,11 +11,10 @@ func main() {
 	pl := [...]*pool.Pool{pool.NewPool(), pool.NewPool()}
 	players := [...]game.PlayerType{game.PlayerX, game.PlayerO}
 
-	if err := pl[0].ReadData("brain_X.bin"); err != nil {
-		panic(err)
-	}
-	if err := pl[1].ReadData("brain_O.bin"); err != nil {
-		panic(err)
+	for _, poolEl := range pl {
+		if err := poolEl.ReadData("brain.bin"); err != nil {
+			panic(err)
+		}
 	}
 
 	index := 0
@@ -37,16 +36,19 @@ func main() {
 			switch val {
 			case game.PlayerNone:
 				fmt.Println("Draw")
-				pl[0].DoLose()
-				pl[1].DoLose()
+				pl[0].DoWin()
+				pl[0].DoWinTwo(pl[1])
+				index = 0
 			case game.PlayerX:
 				fmt.Println("Win: X")
 				pl[0].DoWin()
-				pl[1].DoLose()
+				pl[0].DoLose(pl[1])
+				index = 0
 			case game.PlayerO:
 				fmt.Println("Win: O")
-				pl[0].DoLose()
 				pl[1].DoWin()
+				pl[1].DoLose(pl[0])
+				index = 1
 			}
 			break
 		}
@@ -59,10 +61,7 @@ func main() {
 		}
 	}
 
-	if err := pl[0].WriteData("brain_X.bin"); err != nil {
-		panic(err)
-	}
-	if err := pl[1].WriteData("brain_O.bin"); err != nil {
+	if err := pl[index].WriteData("brain.bin"); err != nil {
 		panic(err)
 	}
 

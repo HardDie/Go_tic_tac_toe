@@ -3,6 +3,7 @@ package pool
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -169,19 +170,45 @@ func (p *Pool) ReadData(filename string) error {
 func (p *Pool) DoWin() {
 	for _, val := range p.activeSteps {
 		p.Pool[val.field][val.step] += constStudyWinWeight
+		fmt.Println("Good", p.Pool[val.field], val.step)
 	}
 
 	p.GameCounts++
 }
 
-func (p *Pool) DoLose() {
-	for _, val := range p.activeSteps {
+func (p *Pool) DoWinTwo(losePool *Pool) {
+	for _, val := range losePool.activeSteps {
+		if _, ok := p.Pool[val.field]; !ok {
+			p.Pool[val.field] = &variants{}
+			for i, char := range val.field {
+				if char == ' ' {
+					p.Pool[val.field][i] = firstWeight
+				}
+			}
+		}
+
+		p.Pool[val.field][val.step] += constStudyWinWeight
+		fmt.Println("Good", p.Pool[val.field], val.step)
+	}
+}
+
+func (p *Pool) DoLose(losePool *Pool) {
+	for _, val := range losePool.activeSteps {
+		if _, ok := p.Pool[val.field]; !ok {
+			p.Pool[val.field] = &variants{}
+			for i, char := range val.field {
+				if char == ' ' {
+					p.Pool[val.field][i] = firstWeight
+				}
+			}
+		}
+
 		if p.Pool[val.field][val.step] > constStudyLoseWeight {
 			p.Pool[val.field][val.step] -= constStudyLoseWeight
+			fmt.Println("Bad", p.Pool[val.field], val.step)
 		} else {
 			p.Pool[val.field][val.step] = 1
+			fmt.Println("Bad", p.Pool[val.field], val.step)
 		}
 	}
-
-	p.GameCounts++
 }
