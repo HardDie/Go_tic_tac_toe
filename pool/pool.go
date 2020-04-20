@@ -35,7 +35,7 @@ type Pool struct {
 	Width       uint16
 	Height      uint16
 	Pool        map[string]*variants
-	activeSteps []step
+	activeSteps [2][]step
 }
 
 /**
@@ -72,7 +72,7 @@ func stepWithRotation(pos, rotation int) int {
 	}
 }
 
-func (p *Pool) GetStep(gm game.Game) (int, error) {
+func (p *Pool) GetStep(gm game.Game, player game.PlayerType) (int, error) {
 	var field string
 	rotation := 0
 	fields := gm.FieldToAllVariants()
@@ -120,7 +120,12 @@ func (p *Pool) GetStep(gm game.Game) (int, error) {
 		if (randValue >= tmpValue) &&
 			(randValue < tmpValue+val) {
 
-			p.activeSteps = append(p.activeSteps, step{field, i})
+			switch player {
+			case game.PlayerX:
+				p.activeSteps[0] = append(p.activeSteps[0], step{field, i})
+			case game.PlayerO:
+				p.activeSteps[1] = append(p.activeSteps[1], step{field, i})
+			}
 
 			return stepWithRotation(i, rotation), nil
 		}
@@ -167,42 +172,26 @@ func (p *Pool) ReadData(filename string) error {
 	return nil
 }
 
-func (p *Pool) DoWin() {
-	for _, val := range p.activeSteps {
-		p.Pool[val.field][val.step] += constStudyWinWeight
-		fmt.Println("Good", p.Pool[val.field], val.step)
+func (p *Pool) DoWin(player game.PlayerType) {
+	loserID := -1
+	switch player {
+	case game.PlayerX:
+		for _, val := range p.activeSteps[0] {
+			p.Pool[val.field][val.step] += constStudyWinWeight
+			fmt.Println("Good", p.Pool[val.field], val.step)
+		}
+		loserID = 1
+	case game.PlayerO:
+		for _, val := range p.activeSteps[1] {
+			p.Pool[val.field][val.step] += constStudyWinWeight
+			fmt.Println("Good", p.Pool[val.field], val.step)
+		}
+		loserID = 0
+	default:
+		panic("ERROR")
 	}
 
-	p.GameCounts++
-}
-
-func (p *Pool) DoWinTwo(losePool *Pool) {
-	for _, val := range losePool.activeSteps {
-		if _, ok := p.Pool[val.field]; !ok {
-			p.Pool[val.field] = &variants{}
-			for i, char := range val.field {
-				if char == ' ' {
-					p.Pool[val.field][i] = firstWeight
-				}
-			}
-		}
-
-		p.Pool[val.field][val.step] += constStudyWinWeight
-		fmt.Println("Good", p.Pool[val.field], val.step)
-	}
-}
-
-func (p *Pool) DoLose(losePool *Pool) {
-	for _, val := range losePool.activeSteps {
-		if _, ok := p.Pool[val.field]; !ok {
-			p.Pool[val.field] = &variants{}
-			for i, char := range val.field {
-				if char == ' ' {
-					p.Pool[val.field][i] = firstWeight
-				}
-			}
-		}
-
+	for _, val := range p.activeSteps[loserID] {
 		if p.Pool[val.field][val.step] > constStudyLoseWeight {
 			p.Pool[val.field][val.step] -= constStudyLoseWeight
 			fmt.Println("Bad", p.Pool[val.field], val.step)
@@ -211,4 +200,19 @@ func (p *Pool) DoLose(losePool *Pool) {
 			fmt.Println("Bad", p.Pool[val.field], val.step)
 		}
 	}
+
+	p.GameCounts++
+}
+
+func (p *Pool) DoDraw() {
+	for _, val := range p.activeSteps[0] {
+		p.Pool[val.field][val.step] += constStudyWinWeight
+		fmt.Println("Good", p.Pool[val.field], val.step)
+	}
+	for _, val := range p.activeSteps[1] {
+		p.Pool[val.field][val.step] += constStudyWinWeight
+		fmt.Println("Good", p.Pool[val.field], val.step)
+	}
+
+	p.GameCounts++
 }

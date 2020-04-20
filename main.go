@@ -8,19 +8,17 @@ import (
 
 func main() {
 	gg := game.NewGame()
-	pl := [...]*pool.Pool{pool.NewPool(), pool.NewPool()}
+	pl := pool.NewPool()
 	players := [...]game.PlayerType{game.PlayerX, game.PlayerO}
 
-	for _, poolEl := range pl {
-		if err := poolEl.ReadData("brain.bin"); err != nil {
-			panic(err)
-		}
+	if err := pl.ReadData("brain.bin"); err != nil {
+		panic(err)
 	}
 
 	index := 0
 
 	for {
-		ret, err := pl[index].GetStep(*gg)
+		ret, err := pl.GetStep(*gg, players[index])
 		if err != nil {
 			panic(err)
 		}
@@ -36,19 +34,13 @@ func main() {
 			switch val {
 			case game.PlayerNone:
 				fmt.Println("Draw")
-				pl[0].DoWin()
-				pl[0].DoWinTwo(pl[1])
-				index = 0
+				pl.DoDraw()
 			case game.PlayerX:
 				fmt.Println("Win: X")
-				pl[0].DoWin()
-				pl[0].DoLose(pl[1])
-				index = 0
+				pl.DoWin(game.PlayerX)
 			case game.PlayerO:
 				fmt.Println("Win: O")
-				pl[1].DoWin()
-				pl[1].DoLose(pl[0])
-				index = 1
+				pl.DoWin(game.PlayerO)
 			}
 			break
 		}
@@ -61,10 +53,10 @@ func main() {
 		}
 	}
 
-	if err := pl[index].WriteData("brain.bin"); err != nil {
+	if err := pl.WriteData("brain.bin"); err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Games:", pl[index].GameCounts)
-	fmt.Println("Variants:", len(pl[index].Pool))
+	fmt.Println("Games:", pl.GameCounts)
+	fmt.Println("Variants:", len(pl.Pool))
 }
