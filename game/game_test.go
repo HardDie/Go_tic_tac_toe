@@ -3,6 +3,7 @@ package game
 import "testing"
 
 func TestReset(t *testing.T) {
+	t.Parallel()
 	game := NewGame()
 	for i := 0; i < FieldWidth*FieldHeight; i++ {
 		err := game.MakeStep(PlayerX, i)
@@ -21,6 +22,7 @@ func TestReset(t *testing.T) {
 }
 
 func TestMakeStep(t *testing.T) {
+	t.Parallel()
 	game := NewGame()
 	if err := game.MakeStep(PlayerX, -1); err == nil {
 		t.Errorf("Should be error")
@@ -38,6 +40,7 @@ func TestMakeStep(t *testing.T) {
 }
 
 func TestCheckWin(t *testing.T) {
+	t.Parallel()
 	game := NewGame()
 
 	players := [2]PlayerType{PlayerX, PlayerO}
