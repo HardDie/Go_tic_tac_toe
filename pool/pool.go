@@ -141,7 +141,7 @@ func (p Pool) WriteData(filename string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filename, dat, 0644)
+	err = ioutil.WriteFile(filename, dat, 0644) // nolint: gosec
 	if err != nil {
 		return err
 	}
