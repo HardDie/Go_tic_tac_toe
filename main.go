@@ -2,18 +2,21 @@ package main
 
 import (
 	"fmt"
+	"tic_tac_toe/database"
 	"tic_tac_toe/game"
 	"tic_tac_toe/pool"
 )
 
 func main() {
-	gg := game.NewGame()
-	pl := pool.NewPool()
-	players := [...]game.PlayerType{game.PlayerX, game.PlayerO}
-
-	if err := pl.ReadData("brain.bin"); err != nil {
+	// Read database
+	db := database.New(game.FieldWidth, game.FieldHeight)
+	if err := db.ReadData("brain.bin"); err != nil {
 		panic(err)
 	}
+
+	gg := game.NewGame()
+	pl := pool.New(db)
+	players := [...]game.PlayerType{game.PlayerX, game.PlayerO}
 
 	index := 0
 
@@ -53,10 +56,10 @@ func main() {
 		}
 	}
 
-	if err := pl.WriteData("brain.bin"); err != nil {
+	if err := db.WriteData("brain.bin"); err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Games:", pl.GameCounts)
-	fmt.Println("Variants:", len(pl.Pool))
+	fmt.Println("Games:", db.CountPlayedGames)
+	fmt.Println("Variants:", len(db.Pool))
 }

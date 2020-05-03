@@ -1,14 +1,10 @@
 package pool
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
-	"os"
+	"tic_tac_toe/database"
 	"tic_tac_toe/game"
-	"time"
 )
 
 /**
@@ -23,31 +19,23 @@ const constStudyLoseWeight = 1
  * Types
  */
 
-type variants [game.FieldWidth * game.FieldHeight]uint64
-
 type step struct {
 	field string
 	step  int
 }
 
 type Pool struct {
-	GameCounts  uint64
-	Width       uint16
-	Height      uint16
-	Pool        map[string]*variants
 	activeSteps [2][]step
+	db          *database.Database
 }
 
 /**
  * Methods
  */
 
-func NewPool() *Pool {
+func New(db *database.Database) *Pool {
 	pool := Pool{}
-	pool.Pool = make(map[string]*variants)
-	pool.Width = game.FieldWidth
-	pool.Height = game.FieldHeight
-	rand.Seed(time.Now().UnixNano())
+	pool.db = db
 	return &pool
 }
 
@@ -73,12 +61,15 @@ func stepWithRotation(pos, rotation int) int {
 }
 
 func (p *Pool) GetStep(gm game.Game, player game.PlayerType) (int, error) {
-	var field string
+	var curField string
+	var curStep int = -1
+
 	rotation := 0
 	fields := gm.FieldToAllVariants()
 
-	for i, val := range fields {
-		if _, ok := p.Pool[val]; ok {
+	for i, tmpField := range fields {
+		tmpStep, err := p.db.GetStep(tmpField)
+		if err == nil {
 			switch i {
 			case 0, 1:
 				rotation = 0
@@ -91,85 +82,34 @@ func (p *Pool) GetStep(gm game.Game, player game.PlayerType) (int, error) {
 			default:
 				return 0, errors.New("Wrong rotation")
 			}
-			field = val
+			curField = tmpField
+			curStep = tmpStep
 			break
 		}
 	}
 
-	// Init element if not exist
-	if len(field) == 0 {
-		field = fields[0]
-		p.Pool[field] = &variants{}
-		for i, val := range field {
-			if val == ' ' {
-				p.Pool[field][i] = firstWeight
-			}
+	// Create element if not exist
+	if curStep == -1 {
+		curField = fields[0]
+		if err := p.db.CreateField(curField, firstWeight); err != nil {
+			return 0, err
 		}
-	}
 
-	// Calculate max random value
-	maxValue := uint64(0)
-	for _, val := range p.Pool[field] {
-		maxValue += val
-	}
-
-	// Choose step
-	randValue := rand.Uint64() % maxValue
-	tmpValue := uint64(0)
-	for i, val := range p.Pool[field] {
-		if (randValue >= tmpValue) &&
-			(randValue < tmpValue+val) {
-
-			switch player {
-			case game.PlayerX:
-				p.activeSteps[0] = append(p.activeSteps[0], step{field, i})
-			case game.PlayerO:
-				p.activeSteps[1] = append(p.activeSteps[1], step{field, i})
-			}
-
-			return stepWithRotation(i, rotation), nil
+		tmpStep, err := p.db.GetStep(curField)
+		if err != nil {
+			return 0, err
 		}
-		tmpValue += val
+		curStep = tmpStep
 	}
 
-	return 0, errors.New("Can't find step")
-}
-
-func (p Pool) WriteData(filename string) error {
-	dat, err := json.Marshal(p)
-	if err != nil {
-		return err
+	switch player {
+	case game.PlayerX:
+		p.activeSteps[0] = append(p.activeSteps[0], step{curField, curStep})
+	case game.PlayerO:
+		p.activeSteps[1] = append(p.activeSteps[1], step{curField, curStep})
 	}
 
-	err = ioutil.WriteFile(filename, dat, 0644) // nolint: gosec
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *Pool) ReadData(filename string) error {
-	dat, err := ioutil.ReadFile(filename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Skip reading if file not exist
-			return nil
-		}
-		return err
-	}
-
-	err = json.Unmarshal(dat, p)
-	if err != nil {
-		return err
-	}
-
-	if game.FieldWidth != p.Width ||
-		game.FieldHeight != p.Height {
-		return errors.New("Field size diffirent")
-	}
-
-	return nil
+	return stepWithRotation(curStep, rotation), nil
 }
 
 func (p *Pool) DoWin(player game.PlayerType) {
@@ -177,14 +117,20 @@ func (p *Pool) DoWin(player game.PlayerType) {
 	switch player {
 	case game.PlayerX:
 		for _, val := range p.activeSteps[0] {
-			p.Pool[val.field][val.step] += constStudyWinWeight
-			fmt.Println("Good", p.Pool[val.field], val.step)
+			err := p.db.ChangeValue(val.field, val.step, constStudyWinWeight)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("Good", p.db.Pool[val.field], val.step)
 		}
 		loserID = 1
 	case game.PlayerO:
 		for _, val := range p.activeSteps[1] {
-			p.Pool[val.field][val.step] += constStudyWinWeight
-			fmt.Println("Good", p.Pool[val.field], val.step)
+			err := p.db.ChangeValue(val.field, val.step, constStudyWinWeight)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("Good", p.db.Pool[val.field], val.step)
 		}
 		loserID = 0
 	default:
@@ -192,27 +138,31 @@ func (p *Pool) DoWin(player game.PlayerType) {
 	}
 
 	for _, val := range p.activeSteps[loserID] {
-		if p.Pool[val.field][val.step] > constStudyLoseWeight {
-			p.Pool[val.field][val.step] -= constStudyLoseWeight
-			fmt.Println("Bad", p.Pool[val.field], val.step)
-		} else {
-			p.Pool[val.field][val.step] = 1
-			fmt.Println("Bad", p.Pool[val.field], val.step)
+		err := p.db.ChangeValue(val.field, val.step, -constStudyLoseWeight)
+		if err != nil {
+			panic(err)
 		}
+		fmt.Println("Bad", p.db.Pool[val.field], val.step)
 	}
 
-	p.GameCounts++
+	p.db.IncreaseCountGames()
 }
 
 func (p *Pool) DoDraw() {
 	for _, val := range p.activeSteps[0] {
-		p.Pool[val.field][val.step] += constStudyWinWeight
-		fmt.Println("Good", p.Pool[val.field], val.step)
+		err := p.db.ChangeValue(val.field, val.step, constStudyWinWeight)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Good", p.db.Pool[val.field], val.step)
 	}
 	for _, val := range p.activeSteps[1] {
-		p.Pool[val.field][val.step] += constStudyWinWeight
-		fmt.Println("Good", p.Pool[val.field], val.step)
+		err := p.db.ChangeValue(val.field, val.step, constStudyWinWeight)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Good", p.db.Pool[val.field], val.step)
 	}
 
-	p.GameCounts++
+	p.db.IncreaseCountGames()
 }
