@@ -7,13 +7,7 @@ import (
 	"tic_tac_toe/pool"
 )
 
-func main() {
-	// Read database
-	db := database.New(game.FieldWidth, game.FieldHeight)
-	if err := db.ReadData("brain.bin"); err != nil {
-		panic(err)
-	}
-
+func playGameAI(db *database.Database) error {
 	gg := game.NewGame()
 	pl := pool.New(db)
 	players := [...]game.PlayerType{game.PlayerX, game.PlayerO}
@@ -23,12 +17,12 @@ func main() {
 	for {
 		ret, err := pl.GetStep(*gg, players[index])
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		err = gg.MakeStep(players[index], ret) //nolint
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		gg.Draw()
@@ -54,6 +48,20 @@ func main() {
 		case 1:
 			index = 0
 		}
+	}
+
+	return nil
+}
+
+func main() {
+	// Read database
+	db := database.New(game.FieldWidth, game.FieldHeight)
+	if err := db.ReadData("brain.bin"); err != nil {
+		panic(err)
+	}
+
+	if err := playGameAI(db); err != nil {
+		panic(err)
 	}
 
 	if err := db.WriteData("brain.bin"); err != nil {
